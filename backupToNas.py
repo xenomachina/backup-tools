@@ -27,6 +27,9 @@ def create_argparser():
     description, epilog = __doc__.strip().split('\n', 1)
     parser = argparse.ArgumentParser(description=description, epilog=epilog,
             formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('-n', '--dry-run',
+            action='store_true',
+            help="Perform dry-run.")
     parser.add_argument('-v', '--verbose',
             action='store_true',
             help="Increase verbosity.")
@@ -48,16 +51,28 @@ HOSTNAME_RE = re.compile(
         r'^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*'
         + r'([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$')
 
+class CommandRunner:
+    def __init__(self, verbose, dry_run):
+        self.verbose = verbose
+        self.dry_run = dry_run
+
+    def run(self, args):
+        if self.verbose:
+            pprint(args)
+        if not self.dry_run:
+            subprocess.check_call(args)
+
 def main(args):
     if not HOSTNAME_RE.match(args.source):
         raise UserError("%r is not a valid hostname" % args.source)
+
+    sh = CommandRunner(verbose=args.verbose, dry_run=args.dry_run)
+
     for dir in args.dirs:
-        if not dir.endswith('/'):
-            dir += '/'
-        dest = os.path.join(args.dest, re.sub(r'^/*','',dir))
-        pprint(['mkdir','-p',dest])
-        command = ['rsync'] + args.X + [args.source  + ':' + dir] + [dest]
-        pprint(command)
+        dir = re.sub(r'^/*(.*?)/*$', r'\1', dir)
+        dest = os.path.join(args.dest, dir) + '/'
+        sh.run(['mkdir', '-p', dest])
+        sh.run(['rsync'] + args.X + ['%s:/%s/' % (args.source, dir)] + [dest])
 
 def warn(msg):
     print('WARNING: %s' % (msg,), file=sys.stderr)
