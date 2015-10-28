@@ -44,13 +44,19 @@ def create_argparser():
             nargs='+')
     return parser
 
+HOSTNAME_RE = re.compile(
+        r'^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*'
+        + r'([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$')
+
 def main(args):
-    # TODO: verify source is a hostname and ends with :
-    # TODO: verify dir ends in /
+    if not HOSTNAME_RE.match(args.source):
+        raise UserError("%r is not a valid hostname" % args.source)
     for dir in args.dirs:
+        if not dir.endswith('/'):
+            dir += '/'
         dest = os.path.join(args.dest, re.sub(r'^/*','',dir))
         pprint(['mkdir','-p',dest])
-        command = ['rsync'] + args.X + [args.source + dir] + [dest]
+        command = ['rsync'] + args.X + [args.source  + ':' + dir] + [dest]
         pprint(command)
 
 def warn(msg):
