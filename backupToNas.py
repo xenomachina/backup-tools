@@ -15,6 +15,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 from pprint import pprint
 
@@ -63,7 +64,24 @@ class CommandRunner:
         if not self.dry_run:
             subprocess.check_call(args)
 
+def humanReadableTimeDelta(s, precise=False):
+    t = s # units vary throughout the loop
+    for factor, name in [
+            (1, 'seconds'), # we start with seconds, hence 1
+            (60, 'minutes'),
+            (60, 'hours'),
+            (24, 'days'),
+            (7, 'weeks'),
+            (365.25/7, 'years'),]:
+        t /= factor
+        if factor > 1 and t < 1: break
+        result = '%g %s' % (t, name)
+        if precise and t != s:
+            result += ' (%g seconds)' % s
+    return result
+
 def main(args):
+    start_time = time.time()
     if not HOSTNAME_RE.match(args.source):
         raise UserError("%r is not a valid hostname" % args.source)
 
@@ -74,6 +92,8 @@ def main(args):
         dest = os.path.join(args.dest, dir) + '/'
         sh.run(['mkdir', '-p', dest])
         sh.run(['rsync'] + args.X + ['%s:/%s/' % (args.source, dir)] + [dest])
+    print('Total running time:',
+            humanReadableTimeDelta(time.time() - start_time))
 
 def warn(msg):
     print('WARNING: %s' % (msg,), file=sys.stderr)
