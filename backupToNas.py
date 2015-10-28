@@ -11,6 +11,8 @@ from __future__ import absolute_import, division, print_function
 from future_builtins import *
 
 import argparse
+import os
+import re
 import sys
 
 from pprint import pprint
@@ -43,14 +45,13 @@ def create_argparser():
     return parser
 
 def main(args):
-    foo = {
-            'verbose': args.verbose,
-            'dest': args.dest,
-            'source': args.source,
-            'X': args.X,
-            'dirs': args.dirs,
-            }
-    pprint(foo)
+    # TODO: verify source is a hostname and ends with :
+    # TODO: verify dir ends in /
+    for dir in args.dirs:
+        dest = os.path.join(args.dest, re.sub(r'^/*','',dir))
+        pprint(['mkdir','-p',dest])
+        command = ['rsync'] + args.X + [args.source + dir] + [dest]
+        pprint(command)
 
 def warn(msg):
     print('WARNING: %s' % (msg,), file=sys.stderr)
