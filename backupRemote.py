@@ -50,20 +50,23 @@ HOSTNAME_RE = re.compile(
         r'^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*'
         + r'([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$')
 
-def main(args):
-    start_time = time.time()
-    if not HOSTNAME_RE.match(args.source):
-        raise UserError("%r is not a valid hostname" % args.source)
+def backupRemote(runner, source, dirs, dest, rsync_args):
+    if not HOSTNAME_RE.match(source):
+        raise UserError("%r is not a valid hostname" % source)
 
-    sh = CommandRunner(verbose=args.verbose, dry_run=args.dry_run)
-
-    for dir in args.dirs:
+    for dir in dirs:
         dir = re.sub(r'^/*(.*?)/*$', r'\1', dir)
-        dest = os.path.join(args.dest, dir) + '/'
-        sh.run(['mkdir', '-p', dest])
-        sh.run(['rsync'] + args.X + ['%s:/%s/' % (args.source, dir)] + [dest],
+        dest_dir = os.path.join(dest, dir) + '/'
+        runner.run(['mkdir', '-p', dest_dir])
+        runner.run(['rsync'] + rsync_args + ['%s:/%s/' % (source, dir)] + [dest_dir],
                 # 24 means a file disappeared before we could copy it
                 returncode_ok={0, 24}.__contains__)
+
+def main(args):
+    start_time = time.time()
+    runner = CommandRunner(verbose=args.verbose, dry_run=args.dry_run)
+    backupRemote(runner, source=args.source, dirs=args.dirs, dest=args.dest,
+            rsync_args=args.X)
     print('Total running time:',
             humanReadableTimeDelta(time.time() - start_time))
 
