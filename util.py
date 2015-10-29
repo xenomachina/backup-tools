@@ -52,3 +52,18 @@ def humanReadableTimeDelta(s, precise=False):
 
 def warn(msg):
     print('WARNING: %s' % (msg,), file=sys.stderr)
+
+def main_wrapper(argparser, main):
+    error = None
+    try:
+        main(argparser.parse_args())
+    except IOError as exc:
+        if exc.errno != errno.ENOENT:
+            raise
+        error = '%s: %r' % (exc.strerror, exc.filename)
+    except UserError as exc:
+        error = exc.message
+
+    if error is not None:
+        print('%s: ERROR: %s' % (argparser.prog, error), file=sys.stderr)
+        sys.exit(1)

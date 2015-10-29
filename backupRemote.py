@@ -71,17 +71,4 @@ def main(args):
             humanReadableTimeDelta(time.time() - start_time))
 
 if __name__ == '__main__':
-    error = None
-    argparser = create_argparser()
-    try:
-        main(argparser.parse_args())
-    except IOError as exc:
-        if exc.errno != errno.ENOENT:
-            raise
-        error = '%s: %r' % (exc.strerror, exc.filename)
-    except UserError as exc:
-        error = exc.message
-
-    if error is not None:
-        print('%s: ERROR: %s' % (argparser.prog, error), file=sys.stderr)
-        sys.exit(1)
+    main_wrapper(create_argparser(), main)
