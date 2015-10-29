@@ -58,11 +58,16 @@ class CommandRunner:
         self.verbose = verbose
         self.dry_run = dry_run
 
-    def run(self, args):
+    def run(self, args, returncode_ok=lambda x:x == 0):
         if self.verbose:
             pprint(args)
         if not self.dry_run:
-            subprocess.check_call(args)
+            returncode = subprocess.call(args)
+            if returncode_ok(returncode):
+                return returncode
+            else:
+                raise subprocess.CalledProcessError(returncode, args)
+
 
 def humanReadableTimeDelta(s, precise=False):
     t = s # units vary throughout the loop
@@ -91,7 +96,9 @@ def main(args):
         dir = re.sub(r'^/*(.*?)/*$', r'\1', dir)
         dest = os.path.join(args.dest, dir) + '/'
         sh.run(['mkdir', '-p', dest])
-        sh.run(['rsync'] + args.X + ['%s:/%s/' % (args.source, dir)] + [dest])
+        sh.run(['rsync'] + args.X + ['%s:/%s/' % (args.source, dir)] + [dest],
+                # 24 means a file disappeared before we could copy it
+                returncode_ok={0, 24}.__contains__)
     print('Total running time:',
             humanReadableTimeDelta(time.time() - start_time))
 
