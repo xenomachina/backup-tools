@@ -24,6 +24,16 @@ class CommandRunner:
         self.verbose = verbose
         self.dry_run = dry_run
 
+    def v_run(self, cmd, args, returncode_ok=lambda x:x == 0):
+        """
+        Like run, but passes -v as first argument if verbose is true.
+        """
+        cmd = [cmd]
+        if self.verbose:
+            cmd.append('-v')
+        cmd.extend(args)
+        return self.run(cmd, returncode_ok)
+
     def run(self, args, returncode_ok=lambda x:x == 0):
         if self.verbose:
             pprint(args)

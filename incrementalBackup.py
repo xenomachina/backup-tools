@@ -109,7 +109,10 @@ def main(args):
     backupRemote(runner, source=args.source, dirs=args.dirs, dest=rsync_dest,
             rsync_args=rsync_args)
 
-    # TODO mv new backup to correct name
+    runner.v_run('mv', [
+            os.path.join(backup_parent, backup_leafdir + IN_PROGRESS_SUFFIX),
+            os.path.join(backup_parent, backup_leafdir)])
+
     # TODO mv overflow in frequency
     # TODO rm overflow in frequency
 
