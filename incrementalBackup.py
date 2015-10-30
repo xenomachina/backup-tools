@@ -61,15 +61,20 @@ def create_argparser():
             nargs='+')
     return parser
 
-TIMESTAMP_RE = re.compile(
-            r'^(19|20)\d\d'                 # year
-            + r'(0[1-9]|1[012])'            # month
-            + r'(0[1-9]|[12][0-9]|3[01])-'  # day
-            + r'([01][0-9]|2[0123])'        # hour
-            + r'([0-5][0-9])'               # minute
-            + r'([0-5][0-9])$')             # second
+TIMESTAMP_RE = (
+        r'(?:19|20)\d\d'                 # year
+        + r'(?:0[1-9]|1[012])'            # month
+        + r'(?:0[1-9]|[12][0-9]|3[01])-'  # day
+        + r'(?:[01][0-9]|2[0123])'        # hour
+        + r'(?:[0-5][0-9])'               # minute
+        + r'(?:[0-5][0-9])')              # second
 
-FREQUENCY_RE = re.compile(r'^[a-z0-9]+(-[a-z0-9]+)*$')
+FREQUENCY_RE = (r'[a-z0-9]+(?:-[a-z0-9]+)*')
+
+BACKUP_RE = re.compile(
+        r'^(' + TIMESTAMP_RE + r')\.(' + FREQUENCY_RE + r')$')
+TIMESTAMP_RE = re.compile('^' + TIMESTAMP_RE + '$')
+FREQUENCY_RE = re.compile('^' + FREQUENCY_RE + '$')
 
 def compute_leafdir(timestamp, frequency):
     if not TIMESTAMP_RE.match(timestamp):
@@ -86,10 +91,18 @@ def main(args):
     start_time = time.time()
     runner = CommandRunner(verbose=args.verbose, dry_run=args.dry_run)
 
-    rsync_args = args.X # TODO linkdest previous
-
     backup_parent = args.dest
     backup_leafdir = compute_leafdir(args.timestamp, args.frequency)
+    existing = sorted([x for x in os.listdir(backup_parent)
+            if BACKUP_RE.match(x) 
+                and os.path.isdir(os.path.join(backup_parent, x))])
+    rsync_args = args.X
+    if existing:
+        if backup_leafdir <= existing[-1]:
+            raise UserError('Desired name %r is less than %r'
+                    % (backup_leafdir, existing[-1]))
+        rsync_args.append(
+                '--link-dest=' + os.path.join(backup_parent, existing[-1]))
     rsync_dest = os.path.join(backup_parent,
             backup_leafdir + IN_PROGRESS_SUFFIX)
 
