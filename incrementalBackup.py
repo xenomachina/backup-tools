@@ -53,6 +53,10 @@ def create_argparser():
     parser.add_argument('-s', '--source',
             required=True,
             help="Source host.")
+    parser.add_argument('-N', '--size-of-frequency',
+            type=int,
+            help='''Number of backups to keep for this frequency.  Older
+            backups will be marked for deltion if this amout is exceeded.''')
     parser.add_argument('-X',
             help="Rsync options.", default=[],
             action='append')
@@ -86,6 +90,7 @@ def compute_leafdir(timestamp, frequency):
     return '%s.%s' % (timestamp, frequency)
 
 IN_PROGRESS_SUFFIX = '.inprogress'
+DELETING_SUFFIX = '.deleting'
 
 def main(args):
     start_time = time.time()
@@ -113,7 +118,15 @@ def main(args):
             os.path.join(backup_parent, backup_leafdir + IN_PROGRESS_SUFFIX),
             os.path.join(backup_parent, backup_leafdir)])
 
-    # TODO mv overflow in frequency
+    size_of_frequency = args.size_of_frequency
+    if size_of_frequency:
+        in_frequency = [x for x in existing
+                if BACKUP_RE.match(x).group(2) == args.frequency]
+        for old_dir in in_frequency[:-args.size_of_frequency]:
+            runner.v_run('mv', [
+                    os.path.join(backup_parent, old_dir),
+                    os.path.join(backup_parent, old_dir + DELETING_SUFFIX)])
+
     # TODO rm overflow in frequency
 
     print('Total running time:',
