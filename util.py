@@ -8,6 +8,7 @@ Utility functions/classes used for NAS backup utils.
 from __future__ import absolute_import, division, print_function
 from future_builtins import *
 
+import os
 import subprocess
 import sys
 
@@ -43,6 +44,12 @@ class CommandRunner:
                 return returncode
             else:
                 raise subprocess.CalledProcessError(returncode, args)
+
+    def mv(self, source, destination):
+        if self.verbose:
+            print('Moving {!r} -> {!r}'.format(source, destination))
+        if not self.dry_run:
+            os.rename(source, destination)
 
 def humanReadableTimeDelta(s, precise=False):
     t = s # units vary throughout the loop

@@ -114,6 +114,7 @@ def main(args):
             raise UserError('Desired name %r is less than %r'
                     % (backup_leafdir, existing[-1]))
         # TODO: turn % into %% in backup_parent and existing[-1]
+        # TODO: use new-style ({}) formatting?
         formatted_args.append(
                 '--link-dest=' + os.path.join(backup_parent, existing[-1], '%s'))
     rsync_dest = os.path.join(backup_parent,
@@ -122,18 +123,18 @@ def main(args):
     backupRemote(runner, source=args.source, dirs=args.dirs, dest=rsync_dest,
             unformatted_args=unformatted_args, formatted_args=formatted_args)
 
-    runner.v_run('mv', [
+    runner.mv(
             os.path.join(backup_parent, backup_leafdir + IN_PROGRESS_SUFFIX),
-            os.path.join(backup_parent, backup_leafdir)])
+            os.path.join(backup_parent, backup_leafdir))
 
     size_of_frequency = args.size_of_frequency
     if size_of_frequency:
         in_frequency = [x for x in existing
                 if BACKUP_RE.match(x).group(2) == args.frequency]
         for old_dir in in_frequency[:-args.size_of_frequency]:
-            runner.v_run('mv', [
+            runner.mv(
                     os.path.join(backup_parent, old_dir),
-                    os.path.join(backup_parent, old_dir + DELETING_SUFFIX)])
+                    os.path.join(backup_parent, old_dir + DELETING_SUFFIX))
 
     # TODO rm overflow in frequency
 
