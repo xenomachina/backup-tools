@@ -41,6 +41,12 @@ def create_argparser():
     parser.add_argument('-X',
             help="Rsync options.", default=[],
             action='append')
+    parser.add_argument('-Y',
+            help="""Rsync options with "formatting". This is the same as -X,
+            except the "dir" currently being worked on will be inserted
+            wherever %s appears.""", default=[],
+            action='append')
+    # TODO: make this work for non-dirs too, and fix naming?
     parser.add_argument('dirs',
             help="Directories to backup.",
             nargs='+')
@@ -50,13 +56,16 @@ HOSTNAME_RE = re.compile(
         r'^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*'
         + r'([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$')
 
-def backupRemote(runner, source, dirs, dest, rsync_args):
+def backupRemote(runner, source, dirs, dest, unformatted_args, formatted_args):
     if not HOSTNAME_RE.match(source):
         raise UserError("%r is not a valid hostname" % source)
 
     for dir in dirs:
+        # TODO: avoid creating double slashes (//)
+        rsync_args = unformatted_args + [x % (dir,) for x in formatted_args]
         dir = re.sub(r'^/*(.*?)/*$', r'\1', dir)
         dest_dir = os.path.join(dest, dir) + '/'
+        # TODO: don't use mkdir
         runner.run(['mkdir', '-p', dest_dir])
         runner.run(['rsync'] + rsync_args + ['%s:/%s/' % (source, dir)] + [dest_dir],
                 # 24 means a file disappeared before we could copy it
@@ -66,7 +75,7 @@ def main(args):
     start_time = time.time()
     runner = CommandRunner(verbose=args.verbose, dry_run=args.dry_run)
     backupRemote(runner, source=args.source, dirs=args.dirs, dest=args.dest,
-            rsync_args=args.X)
+            unformatted_args=args.X, dir_formatted_args=args.Y)
     print('Total running time:',
             humanReadableTimeDelta(time.time() - start_time))
 

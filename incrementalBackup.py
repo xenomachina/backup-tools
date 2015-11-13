@@ -31,6 +31,7 @@ from backupRemote import backupRemote
 
 __author__  = 'Laurence Gonsalves <laurence@xenomachina.com>'
 
+# TODO: factor out the common stuff between this and backupRemote
 def create_argparser():
     description, epilog = __doc__.strip().split('\n', 1)
     parser = argparse.ArgumentParser(description=description, epilog=epilog,
@@ -59,6 +60,11 @@ def create_argparser():
             backups will be marked for deltion if this amout is exceeded.''')
     parser.add_argument('-X',
             help="Rsync options.", default=[],
+            action='append')
+    parser.add_argument('-Y',
+            help="""Rsync options with "formatting". This is the same as -X,
+            except the "dir" currently being worked on will be inserted
+            wherever %s appears.""", default=[],
             action='append')
     parser.add_argument('dirs',
             help="Directories to backup.",
@@ -101,18 +107,20 @@ def main(args):
     existing = sorted([x for x in os.listdir(backup_parent)
             if BACKUP_RE.match(x) 
                 and os.path.isdir(os.path.join(backup_parent, x))])
-    rsync_args = args.X
+    unformatted_args = args.X
+    formatted_args = args.Y
     if existing:
         if backup_leafdir <= existing[-1]:
             raise UserError('Desired name %r is less than %r'
                     % (backup_leafdir, existing[-1]))
-        rsync_args.append(
-                '--link-dest=' + os.path.join(backup_parent, existing[-1]))
+        # TODO: turn % into %% in backup_parent and existing[-1]
+        formatted_args.append(
+                '--link-dest=' + os.path.join(backup_parent, existing[-1], '%s'))
     rsync_dest = os.path.join(backup_parent,
             backup_leafdir + IN_PROGRESS_SUFFIX)
 
     backupRemote(runner, source=args.source, dirs=args.dirs, dest=rsync_dest,
-            rsync_args=rsync_args)
+            unformatted_args=unformatted_args, formatted_args=formatted_args)
 
     runner.v_run('mv', [
             os.path.join(backup_parent, backup_leafdir + IN_PROGRESS_SUFFIX),
