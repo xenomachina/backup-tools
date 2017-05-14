@@ -68,8 +68,10 @@ def backupRemote(runner, source, dirs, dest, unformatted_args, formatted_args):
         # TODO: don't use mkdir
         runner.run(['mkdir', '-p', dest_dir])
         runner.run(['rsync'] + rsync_args + ['%s:/%s/' % (source, dir)] + [dest_dir],
-                # 24 means a file disappeared before we could copy it
-                returncode_ok={0, 24}.__contains__)
+                # 23: Partial transfer due to error
+                # 24: Partial transfer due to vanished source files
+                # 25: The --max-delete limit stopped deletions
+                returncode_ok={0, 23, 24, 25}.__contains__)
 
 def main(args):
     start_time = time.time()
